@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>
+        Exercise phase 1
+    </title>
+    <style>
+        body {
+            padding: 30px;
+        }
+        
+        .property-value-pair span {
+            min-width: 100px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        
+        .property-value-pair select,
+        .property-value-pair input {
+            display: inline-block
+        }
+        /* table:first-child {
+            background-color: #79A3B1; 
+         } */
+        
+        tr {
+            height: 40px;
+        }
+        
+        tr:hover {
+            cursor: pointer;
+            background-color: lightblue!important;
+            /* opacity: 1; */
+        }
+        
+        tr:nth-child(even) {
+            background-color: #FCF8EC;
+        }
+        
+        tr:nth-child(2n +3) {
+            background-color: #D0E8F2;
+        }
+        
+        td {
+            padding: 3px 5px;
+        }
+        
+        th {
+            background-color: #79A3B1;
+            height: 35px;
+        }
+        
+        img {
+            height: 30px;
+        }
+        
+        .hide {
+            display: none;
+        }
+        
+        .error-msg {
+            color: red;
+            /* width: fit-content; */
+        }
+        
+        .gender-radio-btn {
+            width: fit-content;
+            display: inline-block;
+        }
+        
+        .error {
+            background-color: #fc9c9c;
+        }
+    </style>
+</head>
+
+<body>
+
+    <form>
+        <div class="property-value-pair">
+            <span class="caption">id</span>
+            <input type="text" name="id" />
+        </div>
+        <div class="property-value-pair">
+            <span class="caption">First Name</span>
+            <input type="text" name="firstName" />
+        </div>
+        <div class="property-value-pair">
+
+            <span class="caption">Last Name</span>
+            <input type="text" name="laststName" />
+        </div>
+        <div class="property-value-pair">
+
+            <span class="caption">Profile Url</span>
+            <input type="text" name="profileUrl" />
+        </div>
+        <div class="property-value-pair">
+            <span class="caption">Gender</span>
+            <div class="gender-radio-btn">
+                <input type="radio" id="male" name="gender" value="male" /> <label for="male">Male</label>
+                <input type="radio" id="female" name="gender" value="female" /> <label for="female">Female</label>
+            </div>
+        </div>
+        <div class="property-value-pair">
+            <span class="caption">Hobby</span>
+            <select name="hobi">  <!--size="3" you can add adn mulitple     If the name attribute is omitted, the value of the input field will not be sent at all!!!!.-->
+                <option style="display: none;" value="">
+                    Select Hobi
+                </option>   
+                <option value="biking">
+                    Biking
+                </option>
+                <option value="running">
+                    Running
+                </option>
+                <option value="swimming">  <!--selected you can add-->
+                    Swimming
+                </option>
+            </select>
+        </div>
+        <button id="editOrAddBtn" onclick="editOrAdd()">Add</button>
+    </form>
+    <div class="error-msg"></div>
+    <div class="list hide">
+
+    </div>
+    <script>
+        let persons = [] //(5) [{…}, {…}, {…}, {…}, {…}]
+        let table;
+        let form;
+        let isEditMode = false
+        let btn
+        let listTable
+        let errorMsg
+
+
+        const properties = [
+            'id',
+            'firstName',
+            'laststName',
+            'gender',
+            'hobi',
+            'profileUrl',
+        ]
+
+        document.onreadystatechange = () => {
+            if (document.readyState === 'complete') {
+                onInit()
+            }
+        }
+
+        function onInit() {
+            form = document.querySelector('form')
+            btn = document.querySelector('#editOrAddBtn')
+            listTable = document.querySelector('.list')
+            errorMsg = document.querySelector('.error-msg')
+            renderTable();
+        }
+
+        function editOrAdd() { //it needs to know the flow we have one button with two פעולות
+            event.preventDefault()
+            if (isEditMode) {
+                donePersonEditing(form['id'].value)
+            } else {
+                onCreatePerson()
+            }
+        }
+
+        function switchFlow(toFlow) { //only for the string inside the button
+            isEditMode = toFlow === 'edit' ? true : false;
+            if (isEditMode) {
+                btn.innerHTML = 'OK' //do  a cancel button as well
+            } else {
+                btn.innerHTML = 'Add'
+            }
+        }
+        /**
+         *?PERSON OPERATIONS 
+         */
+
+        function onCreatePerson() {
+            if (!isValidateForm()) return;
+
+            if (persons.length === 0) {
+                // show the table
+                listTable.classList.remove('hide')
+            }
+            let person = createPerson(); // create a person object and adds the new person to array of persons
+            addPersonToList(person); // adding a new person to list that we dont need right now
+            addPersonToTable(person);
+            resetForm()
+        }
+
+        function createPerson() {
+
+            let person = {}
+
+            for (let prop of properties) {
+                person[prop] = form.elements[prop].value
+            }
+            return person;
+        }
+
+        function addPersonToList(person) {
+            persons.push(person)
+            console.log('persons', persons) // (5) [{…}, {…}, {…}, {…}, {…}]
+        }
+
+        function addPersonToTable(person) {
+            const tr = createTr(person)
+            tdEdit = createTd(`<button type="button" onclick="onEditPersonFillForm('${person.id}')">Edit Person</button>`)
+            tdDelete = createTd(`<button type="button" onclick="deletePerson('${person.id}')">Delete Person</button>`)
+            tr.append(tdEdit, tdDelete)
+            table.appendChild(tr);
+        }
+
+        function changePersonDetails(person) { //*TODO check the case of an empty gender value!!!!
+            for (let prop in person) {
+                person[prop] = form[prop].value
+            }
+        }
+
+        function deletePerson(id) {
+            //filter out everyone except jack and you ahve new object (by reference so no need for variable)
+            // let arr = [{name: 'jack'},{name: 'regina'}, {name: 'david'}]
+            // arr.filter(obj => obj.name !== 'jack')
+
+            //  1.   delete the person from the DOM
+            let toBeDeleted = document.getElementById(id)
+            toBeDeleted.remove()
+                // 2.  delete the person from the persons array
+            persons = persons.filter(person => person.id !== id)
+
+            //btw haim wanted to create a new person array and hasama to the old one !!!!!!!!!!!!!!!!!!!!!!!
+
+            // another way:
+            // let index = 0;
+            // let found = false
+            // for (let person of persons) {
+            //     if (person.id === id) {
+            //         if (found) break
+            //         //delete the person from thhe DOM
+            //         let toBeDeleted = document.getElementById(id)
+            //         toBeDeleted.remove()
+            //         //delete the person from the persons array
+            //         persons.splice(index, 1);
+            //         found = true
+            //     }
+            //     index++;
+            // }
+
+            if (persons.length === 0) {
+                // hide  the table
+                listTable.classList.add('hide')
+            }
+        }
+
+        /**
+         *?TABLE OPERATIONS 
+         */
+
+        function renderTable() {
+            createTableWithHeaderOnly()
+            const container = document.querySelector('div.list')
+            container.appendChild(table)
+        }
+
+        function createTableWithHeaderOnly() {
+            table = document.createElement('table') //make global this is not query selelctor this is create element
+            const tableHeader = createTableHeader();
+            table.appendChild(tableHeader)
+        }
+
+        function createTableHeader() {
+            const titles = {
+                id: 'ID',
+                firstName: 'First Name',
+                laststName: 'Last Name',
+                gender: 'Gender',
+                hobi: 'Hobby',
+                ProfileUrl: 'image',
+                editPerson: 'Edit Person',
+                deletePerson: 'Delete Person'
+            }
+            const tr = document.createElement('tr')
+            let th
+            for (let prop in titles) {
+                th = createTh(titles[prop])
+                tr.appendChild(th)
+            }
+            return tr
+        }
+
+        //<tr><td>124</td><td>David</td>....</tr>
+        function createTh(text) {
+            const th = document.createElement('th')
+            th.innerHTML = text
+            return th
+        }
+
+
+        //<tr><td>124</td><td>David</td>....</tr>
+        function createTr(obj) {
+            const tr = document.createElement('tr')
+            let tdEdit
+            let tdDelete
+            for (let prop in obj) {
+                let td
+                if (prop === 'profileUrl') {
+                    const img = createImage(obj[prop])
+                    td = createTd('')
+                    td.appendChild(img)
+                } else {
+                    td = createTd(obj[prop])
+                }
+                tr.appendChild(td)
+                if (prop === 'id') {
+                    tr.id = `${obj[prop]}`
+                }
+
+            }
+            return tr
+        }
+
+        //<td>David</td>
+        function createTd(text) {
+            const td = document.createElement('td')
+            td.innerHTML = text
+            return td
+        }
+        //<img src="https....">
+        function createImage(src) {
+            const img = document.createElement('img')
+            img.src = src
+            return img
+        }
+
+
+        /**
+         *?FORM OPERATIONS 
+         */
+
+
+        // TODO validate all the fields
+        //         1.יש לוודא קלט תקין,לבדוק שהמשתמש הכניס את כל השדות
+
+        //   write= You must fill all fields in red 
+        //  write = Person already exists in red  - check this also 
+        //   2. להוסיף כפתור ערוך בכל שורה של רשומת פרסון וברגע שנלחץ עליו הפרטים יוצגו בטופס שיצרנו קודם
+        //   3. יש להציג כפתור עדכן ליד הטופס כאשר המשתמש לוחץ על ערוך מאחד מכפתורי השורות 
+        //   4. כאשר המשתמש לוחץ על עדכן,נבדוק האם כבר קיימת הרשומה, אם כן נעדכן אם לא לא נשה כלום, נבדוק לפי איידי
+        //   5. יש להוסף כפתור מחיקה ליד כל שורה וברגע שאלחץ עליו תמחק השורה. שימו לב תגדירו מערך כlet
+
+        //6. he wants that every odd line will be colored in a different color and evven with a different color
+        // 7. btw haim didnt want to disable id he wanted nothing to happen 
+
+
+        function isValidateForm() {
+            errorMsg.innerHTML = '' //or you can do dipsay none or block
+            let areEmptyfieldsExist = false // checking if empty fields are exist 
+                // let isIdEmpty = false; // checking if id is an empty field
+            let isIdUnique = true // checking if id is unique
+            let isIdOnlyANumber = true // checking if id consists only of numbers
+
+
+            //we are checking if all the mandatory fields are not empty
+            if (!isEditMode) { //only if im not in edit mode it asks me these questions
+                if (form['id'].value === '') {
+                    // isIdEmpty = true
+                    areEmptyfieldsExist = true
+                }
+                //we are checking if Id received a number only:
+                if (isNaN(form['id'].value)) {
+                    errorMsg.innerHTML += 'Please enter a number id only. '
+                    isIdOnlyANumber = false
+                }
+                //We are checking if the id is unique - only one id
+                if (!isOnlyOnePersonExists(form['id'].value)) { //isPersonUnique
+                    errorMsg.innerHTML += 'This id already exists. '
+                    isIdUnique = false
+                }
+
+                if (areEmptyfieldsExist || !isIdUnique || !isIdOnlyANumber) { //this is only for the color
+                    form['id'].classList.add('error')
+                } else {
+                    form['id'].classList.remove('error')
+                }
+            }
+            if (form['firstName'].value === '') {
+                areEmptyfieldsExist = true
+                form['firstName'].classList.add('error')
+            } else {
+                form['firstName'].classList.remove('error')
+
+            }
+            if (form['laststName'].value === '') {
+                areEmptyfieldsExist = true
+                form['laststName'].classList.add('error')
+            } else {
+                form['laststName'].classList.remove('error')
+
+            }
+            if (form['profileUrl'].value === '') {
+                areEmptyfieldsExist = true
+                form['profileUrl'].classList.add('error')
+            } else {
+                form['profileUrl'].classList.remove('error')
+            }
+            if (form['gender'].value === '') {
+                areEmptyfieldsExist = true
+                document.querySelector('.gender-radio-btn').classList.add('error')
+            } else {
+                document.querySelector('.gender-radio-btn').classList.remove('error')
+            }
+            if (form['hobi'].value === '') {
+                areEmptyfieldsExist = true
+                document.querySelector('[name="hobi"]').classList.add('error')
+            } else {
+                document.querySelector('[name="hobi"]').classList.remove('error')
+            }
+            if (areEmptyfieldsExist) {
+                errorMsg.innerHTML += 'You must fill out all the fields. '
+
+            }
+
+            if (areEmptyfieldsExist || !isIdUnique || !isIdOnlyANumber) {
+                return false
+            } else {
+                return true
+            }
+
+        }
+
+        function isOnlyOnePersonExists(id) {
+
+            for (let person of persons) {
+                if (person.id === id) { //uniquer means there exists ony one so if person.id === id that means its not uniqer anymore so return false
+                    return false
+                }
+            }
+            return true
+        }
+
+        function onEditPersonFillForm(id) {
+            errorMsg.innerHTML = ''
+                // when we press the edit button we want the form to fill up with the details that are assocaited with that persons id
+                //1.1) search for the specific person by id in the array of persons [{id},{},{}] 
+            let person = findPersonById(id);
+            if (!person) return
+                // 1.2) fill the form with the person we found in the previous step.
+            fillTheFormOfSelectedPerson(person)
+                // change add mode to edit mode
+                //2.1) we need to mark if we are in the flow of edit or flow of add
+                //2.2) The add button should be changed to edit
+            switchFlow('edit')
+        }
+
+        function findPersonById(id) {
+            for (let person of persons) {
+
+                if (person.id === id) {
+                    return person
+                }
+            }
+        }
+
+        function fillTheFormOfSelectedPerson(person) {
+            // disable the id form field
+            form['id'].disabled = true //יפה
+            for (let prop in person) {
+                if (prop === 'gender' && person[prop] === '') {
+                    form['gender'][0].checked = false // for Male
+                    form['gender'][1].checked = false // for Female
+                } else {
+                    form[prop].value = person[prop]
+                }
+            }
+
+        }
+
+        function donePersonEditing(id) {
+            // on done editing clicked:
+            // 1.validate that all the form fields are valid
+            //1.1 wreite the validation........
+            //1.2 continue......
+            if (!isValidateForm()) return;
+            // 2. change the person details according to the new edited values
+            //2.1 search for the edited person in the list(arr) of person by id
+            let person = findPersonById(id) //{}
+                //2.2 change the value of this person with the new values
+            changePersonDetails(person)
+                //3. change the row table according to the new edited values
+            editRowTable(person)
+                //4. reset the values in the form
+            resetForm()
+                //4.1   Change the disabled of the id input back to normal
+                //5.  // change edit mode to add mode  //wow הפוך!!
+                //5.1) we need to mark if we are in the flow of edit or flow of add
+                //5.2) The edit button should be changed to add
+            switchFlow('add')
+        }
+
+        function resetForm() {
+            // enable the id form field
+            form['id'].disabled = false
+                //clear all the fields:
+            form.reset()
+        }
+
+        function editRowTable(person) {
+            //Find the tr row in the table with the same id as the object id of that specific person
+            let tr = document.getElementById(person.id)
+                //change each TD value according to the edited persons values
+            let counter = 0;
+            for (let prop in person) {
+                if (prop === 'profileUrl') {
+                    tr.children[counter].children[0].src = person[prop]
+                } else {
+                    tr.children[counter].innerHTML = person[prop]
+                }
+                counter++
+            }
+        }
+    </script>
+
+</body>
+
+</html>
